@@ -233,31 +233,41 @@
         }
 
   .certificate-container {
-    position: relative;
-    width: 210mm;
-    height: 297mm;
-    margin: 0;
-    padding: 0;
-    page-break-inside: avoid;
+  position: relative; /* ESSENCIAL */
+  width: 210mm;
+  height: 297mm;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden; /* Garante que nada “escape” */
+  page-break-inside: avoid;
   }
 
   .certificate {
-    width: 210mm;
-    height: 297mm;
-    padding: 10mm 15mm;
-    box-shadow: none;
-    background: none;
-    position: relative;
-  }
+            width: 210mm;
+            height: 297mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 30mm 25mm;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
 
   .background-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 210mm;
-    height: 297mm;
-    z-index: -1;
-  }
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 210mm;
+  height: 297mm;
+  object-fit: cover;
+  z-index: -1;
+  pointer-events: none;
+}
 }
 
     </style>
