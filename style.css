@@ -21,15 +21,13 @@ body {
 }
 
 .certificate {
-    width: 210mm;
-    height: 297mm;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 40mm 30mm;
-   
-    
+  width: 210mm;
+  height: 297mm;
+  padding: 0; /* cuidado com padding excessivo */
+  box-sizing: border-box;
+  overflow: hidden;
 }
+
 
 /* Logo Section */
 .logo-section {
