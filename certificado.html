@@ -269,6 +269,24 @@ body {
     .signature-title {
         font-size: 1.8vw;
     }
+    @media print {
+  @page {
+    size: A4;
+    margin: 0; /* Remove todas as margens da folha */
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  #certificado {
+    width: 210mm;  /* Largura exata da folha A4 */
+    height: 297mm; /* Altura exata da folha A4 */
+    page-break-after: avoid;
+  }
+}
 }
     </style>
 </head>
