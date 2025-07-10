@@ -11,11 +11,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@100..900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style_simplified_with_menu_updated.css">
-    <!-- Adicione no <head> do seu HTML principal -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    
 </head>
 <body>
     <!-- Navigation Menu Lateral -->
@@ -2060,16 +2057,16 @@ function getModulesText(modules) {
     return modules.map(module => module.name || "Módulo sem nome").join(", ");
 }
 
-// Certifique-se de que as bibliotecas jsPDF e html2canvas estão carregadas
-const { jsPDF } = window.jspdf;
-
 async function downloadCertificatePDF(data) {
     try {
-        // 1. Carregar o template do certificado
-        const response = await fetch("certificado.html");
+        // Criar uma nova janela para o certificado
+        const certificateWindow = window.open('', '_blank', 'width=800,height=600');
+
+        // Carregar o template do certificado
+        const response = await fetch('certificado.html');
         let certificateHTML = await response.text();
 
-        // 2. Substituir os placeholders pelos dados reais
+        // Substituir os placeholders pelos dados reais
         certificateHTML = certificateHTML
             .replace(/{{NOME_ALUNO}}/g, data.studentName)
             .replace(/{{CPF_ALUNO}}/g, data.studentCPF)
@@ -2079,91 +2076,23 @@ async function downloadCertificatePDF(data) {
             .replace(/{{CARGA_HORARIA}}/g, data.courseHours)
             .replace(/{{MODULOS_CURSO}}/g, data.modules);
 
-        // ==================================================================
-        // 3. MODIFICADO: Criar um IFRAME temporário e invisível
-        // ==================================================================
-        const iframe = document.createElement("iframe");
-        iframe.style.position = "absolute";
-        iframe.style.left = "-9999px"; // Move para fora da tela
-        iframe.style.width = "794px";  // Largura do A4 vertical a 96dpi
-        iframe.style.height = "1123px"; // Altura do A4 vertical a 96dpi
-        iframe.style.border = "none";
-        iframe.style.overflow = "hidden";
-        document.body.appendChild(iframe);
+        // Escrever o HTML na nova janela
+        certificateWindow.document.write(certificateHTML);
+        certificateWindow.document.close();
 
-        // Esperar o iframe carregar
-        await new Promise(resolve => {
-            iframe.onload = resolve;
-            // Escrever o HTML do certificado dentro do iframe
-            iframe.contentDocument.open();
-            iframe.contentDocument.write(certificateHTML);
-            iframe.contentDocument.close();
-        });
-
-        // Obter o elemento do certificado dentro do iframe
-        const certificateElement = iframe.contentDocument.querySelector("#certificate-wrapper");
-        if (!certificateElement) {
-            throw new Error("Elemento com ID 'certificate-wrapper' não encontrado no template HTML do iframe.");
-        }
-
-        // 4. Usar html2canvas para capturar o elemento como uma imagem (canvas)
-        const canvas = await html2canvas(certificateElement, {
-            scale: 2,      // Aumenta a escala para melhor qualidade de imagem
-            useCORS: true, // Necessário se o certificado carregar imagens de outras origens
-            width: 794,    // Força a largura de renderização do canvas
-            height: 1123   // Força a altura de renderização do canvas
-        });
-
-        const imgData = canvas.toDataURL("image/png");
-
-        // 5. Usar jsPDF para criar o PDF em formato A4 Vertical
-        const pdf = new jsPDF({
-            orientation: "portrait", // 'portrait' para vertical
-            unit: "mm",              // Usar milímetros como unidade
-            format: "a4"             // Formato do papel A4
-        });
-
-        // Obter as dimensões da página A4 em milímetros
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-
-        // Obter as dimensões da imagem (canvas)
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
-
-        // Calcular a proporção da imagem para que ela caiba na largura do PDF sem distorcer
-        const canvasRatio = canvasWidth / canvasHeight;
-        
-        let finalWidth = pdfWidth;
-        let finalHeight = finalWidth / canvasRatio;
-
-        if (finalHeight > pdfHeight) {
-            finalHeight = pdfHeight;
-            finalWidth = finalHeight * canvasRatio;
-        }
-        
-        pdf.addImage(imgData, "PNG", (pdfWidth - finalWidth) / 2, 0, finalWidth, finalHeight);
-
-        // 6. Forçar o download do PDF
-        pdf.save(`Certificado-${data.studentName.replace(/ /g, "_")}.pdf`);
-
-        // 7. Limpeza: remover o iframe temporário do corpo do documento
-        document.body.removeChild(iframe);
+        // Aguardar o carregamento e imprimir
+        certificateWindow.onload = function () {
+            setTimeout(() => {
+                certificateWindow.print();
+            }, 1000);
+        };
 
     } catch (error) {
         console.error("Erro ao gerar PDF:", error);
-        alert("Erro ao gerar certificado: " + error.message); // Adiciona um alerta para o usuário
-
-        // Se houver um iframe pendurado por causa de um erro, tente removê-lo
-        const tempIframe = document.querySelector("iframe[style*='left: -9999px']");
-        if (tempIframe) {
-            document.body.removeChild(tempIframe);
-        }
         throw error;
     }
+
 }
-
-
 try {
     const whatsappButtonsContainer = document.getElementById("whatsapp-buttons");
     whatsappButtonsContainer.innerHTML = ''; // Limpa botões existentes
