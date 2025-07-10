@@ -38,12 +38,25 @@
             padding: 20px;
         }
 
-        .certificate-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
+      .certificate-container {
+  position: relative; /* ESSENCIAL */
+  width: 210mm;
+  height: 297mm;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden; /* Garante que nada “escape” */
+}
+.background-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 210mm;
+  height: 297mm;
+  object-fit: cover;
+  z-index: -1;
+  pointer-events: none;
+}
         .certificate {
             width: 210mm;
             height: 297mm;
@@ -208,32 +221,49 @@
         }
 
         /* Print Styles */
-        @media print {
-            body {
-                background-color: white;
-                padding: 0;
-                margin: 0;
-            }
-            
-            .certificate-container {
-                margin: 0;
-                padding: 0;
-            }
-            
-            .certificate {
-                box-shadow: none;
-                margin: 0;
-                page-break-inside: avoid;
-            }
-        }
+   @media print {
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+  }
 
+  .certificate-container {
+    position: relative;
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    padding: 0;
+    page-break-inside: avoid;
+  }
+
+  .certificate {
+    width: 210mm;
+    height: 297mm;
+    padding: 10mm 15mm;
+    box-shadow: none;
+    background: none;
+    position: relative;
+  }
+
+  .background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 210mm;
+    height: 297mm;
+    z-index: -1;
+  }
+}
 
     </style>
 </head>
 <body>
     <div class="certificate-container">
-        <div class="certificate">
-            <img src="background.png" alt="Fundo" class="background-image" />
+  <img src="background.png" alt="Fundo" class="background-image" />
+  <div class="certificate">
             <!-- Logo -->
             <div class="logo-section">
                 <img src="logo.svg" alt="Logo" class="logo">
