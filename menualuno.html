@@ -2075,12 +2075,12 @@ async function downloadCertificatePDF(data) {
       .replace(/{{CARGA_HORARIA}}/g, data.courseHours)
       .replace(/{{MODULOS_CURSO}}/g, data.modules);
 
-    // 3. Cria um iframe oculto para ser nosso "palco" de renderização
+    // 3. Cria um iframe oculto para renderizar o HTML
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
-    iframe.style.width = '210mm'; // Defina um tamanho fixo para o iframe
+    iframe.style.width = '210mm';
     iframe.style.height = '297mm';
-    iframe.style.top = '-10000px'; // Esconde fora da tela
+    iframe.style.top = '-10000px';
     iframe.style.left = '-10000px';
     document.body.appendChild(iframe);
 
@@ -2089,42 +2089,42 @@ async function downloadCertificatePDF(data) {
     iframeDoc.write(certificateHTML);
     iframeDoc.close();
 
-    // 4. A MÁGICA: Espera o iframe carregar TUDO (incluindo fontes e imagens)
+    // 4. Espera o iframe carregar tudo
     iframe.onload = async () => {
-      const iframeBody = iframe.contentWindow.document.body;
+      try {
+        const iframeBody = iframe.contentWindow.document.body;
+        const { jsPDF } = window.jspdf;
 
-      // Importa as bibliotecas do escopo global
-      const { jsPDF } = window.jspdf;
-      const html2canvas = window.html2canvas;
+        // ===============================================================
+        // AQUI ESTÁ A CORREÇÃO: Usamos "window.html2canvas"
+        // ===============================================================
+        const canvas = await window.html2canvas(iframeBody, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+        });
 
-      // 5. Usa html2canvas para "fotografar" o conteúdo do iframe
-      const canvas = await html2canvas(iframeBody, {
-        // Opções cruciais para qualidade e correção de bugs
-        scale: 2,           // Aumenta a resolução da imagem final
-        useCORS: true,      // ESSENCIAL para carregar imagens de outras URLs
-        allowTaint: true,   // Permite "sujar" o canvas com imagens cross-origin
-        logging: false,     // Mude para 'true' se precisar depurar
-      });
+        const imgData = canvas.toDataURL('image/png');
 
-      const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        });
 
-      // 6. Cria o PDF e adiciona a imagem capturada
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`${data.studentName}-certificado.pdf`);
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-      // 7. Baixa o PDF
-      pdf.save(`${data.studentName}-certificado.pdf`);
-
-      // 8. Limpa o iframe da página
-      document.body.removeChild(iframe);
+      } catch (e) {
+        console.error("Erro ao capturar a imagem do certificado:", e);
+        alert("Não foi possível gerar a imagem do certificado.");
+      } finally {
+        // Remove o iframe da página, mesmo se der erro
+        document.body.removeChild(iframe);
+      }
     };
   } catch (error) {
     console.error('Erro ao gerar PDF:', error);
@@ -2132,6 +2132,7 @@ async function downloadCertificatePDF(data) {
     throw error;
   }
 }
+
 
 
 try {
