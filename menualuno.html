@@ -2057,41 +2057,79 @@ function getModulesText(modules) {
     return modules.map(module => module.name || "Módulo sem nome").join(", ");
 }
 async function downloadCertificatePDF(data) {
-    try {
-        // Criar uma nova janela para o certificado
-        const certificateWindow = window.open('', '_blank', 'width=800,height=600');
+  try {
+    // 1. Busca o template HTML
+    const response = await fetch('certificado.html');
+    let certificateHTML = await response.text();
 
-        // Carregar o template do certificado
-        const response = await fetch('certificado.html');
-        let certificateHTML = await response.text();
+    // 2. Preenche os dados dinâmicos
+    certificateHTML = certificateHTML
+      .replace(/{{NOME_ALUNO}}/g, data.studentName)
+      .replace(/{{CPF_ALUNO}}/g, data.studentCPF)
+      .replace(/{{NOME_CURSO}}/g, data.courseName)
+      .replace(/{{DATA_INICIO}}/g, data.startDate)
+      .replace(/{{DATA_FIM}}/g, data.endDate)
+      .replace(/{{CARGA_HORARIA}}/g, data.courseHours)
+      .replace(/{{MODULOS_CURSO}}/g, data.modules);
 
-        // Substituir os placeholders pelos dados reais
-        certificateHTML = certificateHTML
-            .replace(/{{NOME_ALUNO}}/g, data.studentName)
-            .replace(/{{CPF_ALUNO}}/g, data.studentCPF)
-            .replace(/{{NOME_CURSO}}/g, data.courseName)
-            .replace(/{{DATA_INICIO}}/g, data.startDate)
-            .replace(/{{DATA_FIM}}/g, data.endDate)
-            .replace(/{{CARGA_HORARIA}}/g, data.courseHours)
-            .replace(/{{MODULOS_CURSO}}/g, data.modules);
+    // 3. Cria um iframe oculto para ser nosso "palco" de renderização
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.width = '210mm'; // Defina um tamanho fixo para o iframe
+    iframe.style.height = '297mm';
+    iframe.style.top = '-10000px'; // Esconde fora da tela
+    iframe.style.left = '-10000px';
+    document.body.appendChild(iframe);
 
-        // Escrever o HTML na nova janela
-        certificateWindow.document.write(certificateHTML);
-        certificateWindow.document.close();
+    const iframeDoc = iframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write(certificateHTML);
+    iframeDoc.close();
 
-        // Aguardar o carregamento e imprimir
-        certificateWindow.onload = function () {
-            setTimeout(() => {
-                certificateWindow.print();
-            }, 1000);
-        };
+    // 4. A MÁGICA: Espera o iframe carregar TUDO (incluindo fontes e imagens)
+    iframe.onload = async () => {
+      const iframeBody = iframe.contentWindow.document.body;
 
-    } catch (error) {
-        console.error("Erro ao gerar PDF:", error);
-        throw error;
-    }
+      // Importa as bibliotecas do escopo global
+      const { jsPDF } = window.jspdf;
+      const html2canvas = window.html2canvas;
 
+      // 5. Usa html2canvas para "fotografar" o conteúdo do iframe
+      const canvas = await html2canvas(iframeBody, {
+        // Opções cruciais para qualidade e correção de bugs
+        scale: 2,           // Aumenta a resolução da imagem final
+        useCORS: true,      // ESSENCIAL para carregar imagens de outras URLs
+        allowTaint: true,   // Permite "sujar" o canvas com imagens cross-origin
+        logging: false,     // Mude para 'true' se precisar depurar
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+
+      // 6. Cria o PDF e adiciona a imagem capturada
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      // 7. Baixa o PDF
+      pdf.save(`${data.studentName}-certificado.pdf`);
+
+      // 8. Limpa o iframe da página
+      document.body.removeChild(iframe);
+    };
+  } catch (error) {
+    console.error('Erro ao gerar PDF:', error);
+    alert('Não foi possível gerar o certificado. Tente novamente.');
+    throw error;
+  }
 }
+
 try {
     const whatsappButtonsContainer = document.getElementById("whatsapp-buttons");
     whatsappButtonsContainer.innerHTML = ''; // Limpa botões existentes
